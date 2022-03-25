@@ -1,2 +1,2 @@
-# ORTEcosystem
+# OrtEcosystem
 ORT Token Ecosystem
