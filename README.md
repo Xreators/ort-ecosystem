@@ -11,4 +11,4 @@ ORT Token Ecosystem
 
 ## Goerli
 - ORT Token Contract Address : 0xe9F02F16594095A4349D35f1c60423ddf49e8fD7
-- BatchTransfer Contract Address : <none>
+- BatchTransfer Contract Address : none
