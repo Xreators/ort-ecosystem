@@ -1,14 +1,7 @@
 // Right click on the script name and hit "Run" to execute
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { initialize, airdropTransfer, checkTransferResult, checkAllTransferred } = require("../scripts/airdrop/220525/ort_airdrop_func_220525");
-
-const transferNth = async (index: number, isEnd: boolean) => {
-  expect((await airdropTransfer(index))).to.equal(true);
-  expect((await airdropTransfer(index))).to.equal(false); // 같은 번호로 두번째는 전송 안됨
-  expect((await checkTransferResult(index))).to.equal(true);
-  expect((await checkAllTransferred())).to.equal(isEnd);
-}
+const { initialize, airdropTransfer, checkTransferResult, checkAllTransferred } = require("../scripts/airdrop/220526/ort_airdrop_func_220526");
 
 describe("Ort Airdrop Test", function () {
   let ort;
@@ -16,7 +9,7 @@ describe("Ort Airdrop Test", function () {
   let provider;
   let signer;
   let accounts;
-
+  
   it("Initialization", async function () {
     accounts = await web3.eth.getAccounts();
     console.log(accounts);
@@ -28,38 +21,56 @@ describe("Ort Airdrop Test", function () {
     expect((await ort.name())).to.equal('XREATORS');
 
     const BatchTransfer = await ethers.getContractFactory("BatchTransfer");
+    console.log(BatchTransfer);
     const batchTransfer = await BatchTransfer.deploy(ort.address);
     await batchTransfer.deployed();
     console.log('batchTransfer deployed at:'+ batchTransfer.address)
     expect((await batchTransfer.tokenContract())).to.equal(ort.address);
 
-    ort.approve(batchTransfer.address, '8420000000000000000000');
-    expect((await ort.allowance(accounts[0], batchTransfer.address)).eq('8420000000000000000000')).to.equal(true);
+    ort.approve(batchTransfer.address, '4550000000000000000000');
+    expect((await ort.allowance(accounts[0], batchTransfer.address)).eq('4550000000000000000000')).to.equal(true);
 
     expect(initialize(ort.address, batchTransfer.address, accounts[0])).to.equal(true);
   });
 
   it("BatchTransfer Test", async function() {
-    await transferNth(0, false);
-    await transferNth(1, false);
-    await transferNth(2, false);
-    await transferNth(3, false);
-    await transferNth(4, false);
-    await transferNth(5, false);
-    await transferNth(6, false);
-    await transferNth(7, false);
-    await transferNth(8, false);
-    await transferNth(9, false);
-    await transferNth(10, false);
-    await transferNth(11, false);
-    await transferNth(12, false);
-    await transferNth(13, false);
-    await transferNth(14, false);
-    await transferNth(15, false);
-    await transferNth(16, false);
-    await transferNth(17, false);
-    await transferNth(18, false);
-    await transferNth(19, false);
-    await transferNth(20, true);
+    let i;
+    const addrs= {};
+
+    for (i = 0; i < 21; i++) {
+      expect((await airdropTransfer(i))).to.not.equal(false);
+      expect((await airdropTransfer(i))).to.equal(false); // 같은 번호로 두번째는 보내지지 않음
+      if (i == 6)
+        i = 19; // 테스트용으로 JUMP (다 실행하면 오래 걸리기도 하고 메모리가 못 버텨서 죽음...)
+    }
+
+    expect((await checkAllTransferred())).to.equal(true);
+
+    for (i = 0; i < 21; i++) {
+      const result = await checkTransferResult(i);
+      if (result) {
+        console.log(i, result);
+        for (const element of result) {
+            const planned = addrs[element.addr] ? addrs[element.addr].planned : ethers.BigNumber.from(0);
+            if (addrs[element.addr] && addrs[element.addr].saved !== element.saved) 
+                console.log('Something wrong... saved data is not same.');
+            addrs[element.addr] = { saved: element.saved, planned: planned.add(ethers.BigNumber.from(element.planned)) };
+        }
+      }
+      if (i == 6)
+        i = 19; // 테스트용으로 JUMP (다 실행하면 오래 걸리기도 하고 메모리가 못 버텨서 죽음...)
+    }
+        
+    console.log(addrs);
+
+    for (const [addr, value] of Object.entries(addrs)) {
+        if (!value.planned.eq(value.saved)) {
+            console.log('Something wrong...');
+            console.log(value);
+        }
+    }
+
+    const result = await checkAllTransferred();
+    console.log(`Check Done: ${result}`);
   });
 });
